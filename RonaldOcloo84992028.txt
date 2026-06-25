@@ -1,0 +1,151 @@
+
+Ronald Ocloo
+84992028
+Cohort A
+
+
+QUESTION 7.24 
+
+ CREATE TABLE Department (
+    ->     deptNo VARCHAR(10) NOT NULL,
+    ->     deptName VARCHAR(50),
+    ->     mgrEmpNo VARCHAR(10),
+    ->     PRIMARY KEY (deptNo)
+    -> );
+
+ CREATE TABLE Employee (
+    ->     empNo VARCHAR(10) NOT NULL,
+    ->     fName VARCHAR(30),
+    ->     lName VARCHAR(30),
+    ->     address VARCHAR(100),
+    ->     DOB DATE,
+    ->     sex CHAR(1) CHECK (sex IN ('M', 'F')),
+    ->     position VARCHAR(20) CHECK (position IN ('Manager', 'Team Leader', 'Analyst', 'Software Developer')),
+    ->     deptNo VARCHAR(10),
+    ->     PRIMARY KEY (empNo),
+    ->     FOREIGN KEY (deptNo) REFERENCES Department(deptNo)
+    -> );
+
+CREATE TABLE WorksOn (
+    ->     empNo VARCHAR(10) NOT NULL,
+    ->     projNo VARCHAR(10) NOT NULL,
+    ->     dateWorked DATE NOT NULL,
+    ->     hoursWorked INT CHECK (hoursWorked BETWEEN 0 AND 40),
+    ->     PRIMARY KEY (empNo, projNo, dateWorked),
+    ->     FOREIGN KEY (empNo) REFERENCES Employee(empNo),
+    ->     FOREIGN KEY (projNo) REFERENCES Project(projNo)
+    -> );
+Query OK, 0 rows affected (0.024 sec)
+
+
+RESULT: Tables created successfully (Query OK).
+
+QUESTION 7.25
+
+ CREATE VIEW FemaleManagerProjects AS
+    -> SELECT p.projNo, p.projName, p.deptNo
+    -> FROM Project p
+    -> JOIN Department d ON p.deptNo = d.deptNo
+    -> JOIN Employee e ON d.mgrEmpNo = e.empNo
+    -> WHERE e.sex = 'F'
+    -> ORDER BY p.projNo;
+Query OK, 0 rows affected (0.025 sec)
+
+MariaDB [projects_db]> 
+MariaDB [projects_db]> SELECT * FROM FemaleManagerProjects;
++--------+---------------+--------+
+| projNo | projName      | deptNo |
++--------+---------------+--------+
+| P2     | Inventory     | D2     |
+| SCCS   | Staff Control | D3     |
++--------+---------------+--------+
+2 rows in set (0.002 sec)
+
+QUESTION 7.26
+
+SELECT * FROM EmpProjectDetails;
+ERROR 1146 (42S02): Table 'projects_db.empprojectdetails' doesn't exist
+MariaDB [projects_db]> CREATE VIEW EmpProjectDetails AS
+    -> SELECT e.empNo, e.fName, e.lName, p.projName, w.hoursWorked
+    -> FROM Employee e
+    -> JOIN WorksOn w ON e.empNo = w.empNo
+    -> JOIN Project p ON w.projNo = p.projNo;
+Query OK, 0 rows affected (0.023 sec)
+
+MariaDB [projects_db]> 
+MariaDB [projects_db]> SELECT * FROM EmpProjectDetails;
++-------+-------+--------+---------------+-------------+
+| empNo | fName | lName  | projName      | hoursWorked |
++-------+-------+--------+---------------+-------------+
+| E1    | John  | Smith  | Payroll       |          20 |
+| E2    | Mary  | Jones  | Payroll       |          35 |
+| E3    | Sarah | Brown  | Inventory     |          40 |
+| E4    | David | Wilson | Inventory     |          15 |
+| E1    | John  | Smith  | Staff Control |          10 |
+| E2    | Mary  | Jones  | Staff Control |          18 |
+| E5    | Grace | Taylor | Staff Control |          30 |
+| E6    | James | Davis  | Staff Control |          25 |
++-------+-------+--------+---------------+-------------+
+8 rows in set (0.001 sec)
+
+
+QUESTION 7.27
+
+CREATE VIEW EmpProject(empNo, projNo, totalHours)
+    -> AS SELECT w.empNo, w.projNo, SUM(hoursWorked)
+    -> FROM Employee e, Project p, WorksOn w
+    -> WHERE e.empNo = w.empNo AND p.projNo = w.projNo
+    -> GROUP BY w.empNo, w.projNo;
+Query OK, 0 rows affected (0.022 sec)
+
+MariaDB [projects_db]> 
+MariaDB [projects_db]> -- (a)
+MariaDB [projects_db]> SELECT * FROM EmpProject;
++-------+--------+------------+
+| empNo | projNo | totalHours |
++-------+--------+------------+
+| E1    | P1     |         20 |
+| E1    | SCCS   |         10 |
+| E2    | P1     |         35 |
+| E2    | SCCS   |         18 |
+| E3    | P2     |         40 |
+| E4    | P2     |         15 |
+| E5    | SCCS   |         30 |
+| E6    | SCCS   |         25 |
++-------+--------+------------+
+8 rows in set (0.002 sec)
+
+-- (b)
+SELECT projNo FROM EmpProject WHERE projNo = 'SCCS';
++--------+
+| projNo |
++--------+
+| SCCS   |
+| SCCS   |
+| SCCS   |
+| SCCS   |
++--------+
+4 rows in set (0.001 sec)
+
+-- (c)
+SELECT COUNT(projNo) FROM EmpProject WHERE empNo = 'E1';
++---------------+
+| COUNT(projNo) |
++---------------+
+|             2 |
++---------------+
+1 row in set (0.000 sec)
+
+-- (d)
+SELECT empNo, totalHours FROM EmpProject GROUP BY empNo;
++-------+------------+
+| empNo | totalHours |
++-------+------------+
+| E1    |         20 |
+| E2    |         35 |
+| E3    |         40 |
+| E4    |         15 |
+| E5    |         30 |
+| E6    |         25 |
++-------+------------+
+6 rows in set (0.001 sec)
